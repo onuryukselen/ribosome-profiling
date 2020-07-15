@@ -11,7 +11,7 @@ RUN git clone https://github.com/jrw24/G418_readthrough.git /usr/local/bin/G418_
 RUN sed -i '#!/usr/bin/env python' /usr/local/bin/G418_readthrough/riboseq/densebuilder_main.py
 ENV PATH /opt/conda/envs/dolphinnext-riboseq-1.0/bin:/usr/local/bin/dolphin-tools/:/usr/local/bin/G418_readthrough/riboseq:/usr/local/bin/G418_readthrough/utils:/usr/local/bin/G418_readthrough/RNAseq:$PATH
 
-RUN mv /usr/local/bin/G418_readthrough/GFF /opt/conda/envs/dolphinnext-rnaseq-1.0/lib/python2.7/site-packages/.
+RUN mv /usr/local/bin/G418_readthrough/GFF /opt/conda/envs/dolphinnext-riboseq-1.0/lib/python2.7/site-packages/.
 
 RUN mkdir -p /project /nl /mnt /share
 
