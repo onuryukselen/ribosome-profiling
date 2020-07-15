@@ -33,7 +33,6 @@ Yukselen, O., Turkyilmaz, O., Ozturk, A.R. et al. DolphinNext: a distributed dat
 * **Reads**: Specify the location of your input FastQ file. <a class="link-underline" href="https://dolphinnext.readthedocs.io/en/latest/dolphinNext/quick.html#adding-files" target="_blank">Need Help?</a>
 * **Adapter Sequence**: Please enter the adapter sequence(s) in the settings of `run_Adaper_Removal`.
 
-
 ##### Program Versions:
   - fastqc=0.11.8
   - star=2.6.1d 
