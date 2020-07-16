@@ -58,3 +58,11 @@ Yukselen, O., Turkyilmaz, O., Ozturk, A.R. et al. DolphinNext: a distributed dat
   - r-reshape2=1.4.3
   - r-scales=0.5.0
   - xtail=1.1.5
+
+##### Run through DolphinNext User Interface:
+
+To start using the dolphinnext/ribosome-profiling pipeline please go to <a class="link-underline" href="https://dolphinnext.umassmed.edu/index.php?np=1&id=688" target="_blank">DolphinNext Web page</a> and click run button.
+
+##### Run through Command Line:
+
+To install and start using the dolphinnext/ribosome-profiling pipeline by using command line, please follow these steps: <a class="link-underline" href="https://github.com/dolphinnext/ribosome-profiling/blob/1.0/docs/local.md" target="_blank">Installation</a> .
