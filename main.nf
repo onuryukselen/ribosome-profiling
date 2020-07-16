@@ -2043,8 +2043,8 @@ process aggr {
 
 publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
-	if (filename =~ /${name}$/) "results/$filename"
-	else if (filename =~ /${name}\/countTables\/.*.csv$/) "count_tables/$filename"
+	if (filename =~ /${name}\/countTables\/.*.csv$/) "count_tables/$filename"
+	else if (filename =~ /${name}_result$/) "results/$filename"
 }
 
 input:

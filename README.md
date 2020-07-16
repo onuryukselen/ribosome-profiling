@@ -33,6 +33,7 @@ Yukselen, O., Turkyilmaz, O., Ozturk, A.R. et al. DolphinNext: a distributed dat
 * **Reads**: Specify the location of your input FastQ file. <a class="link-underline" href="https://dolphinnext.readthedocs.io/en/latest/dolphinNext/quick.html#adding-files" target="_blank">Need Help?</a>
 * **Adapter Sequence**: Please enter the adapter sequence(s) in the settings of `run_Adaper_Removal`.
 
+
 ##### Program Versions:
   - fastqc=0.11.8
   - star=2.6.1d 
@@ -58,7 +59,6 @@ Yukselen, O., Turkyilmaz, O., Ozturk, A.R. et al. DolphinNext: a distributed dat
   - r-scales=0.5.0
   - xtail=1.1.5
 
-
 ##### Run through DolphinNext User Interface:
 
 To start using the dolphinnext/ribosome-profiling pipeline please go to <a class="link-underline" href="https://dolphinnext.umassmed.edu/index.php?np=1&id=688" target="_blank">DolphinNext Web page</a> and click run button.
@@ -66,4 +66,3 @@ To start using the dolphinnext/ribosome-profiling pipeline please go to <a class
 ##### Run through Command Line:
 
 To install and start using the dolphinnext/ribosome-profiling pipeline by using command line, please follow these steps: <a class="link-underline" href="https://github.com/dolphinnext/ribosome-profiling/blob/1.0/docs/local.md" target="_blank">Installation</a> .
-
