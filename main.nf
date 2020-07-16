@@ -2053,9 +2053,12 @@ input:
 output:
  file "${name}"  into g_6_outputDir_g_7, g_6_outputDir_g_10, g_6_outputDir_g_13, g_6_outputDir_g_15, g_6_outputDir_g_17
  set val(name), file("${name}/countTables/*.csv")  into g_6_outputFileTab
+ file "${name}_result"  into g_6_resultsdir
 
 """
 mv ${dirName} ${name}
+mkdir ${name}_result
+rsync -avzu --exclude='Density_rpm' --exclude='DensityUnnormalized' ${name}/ ${name}_result/
 
 """
 }
