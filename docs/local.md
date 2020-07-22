@@ -1,4 +1,4 @@
-# dolphinnext/rnaseq: Local Configuration
+# dolphinnext/ribosome-profiling: Local Configuration
 <!-- Install Atom plugin markdown-toc-auto for this ToC -->
 <!-- TOC START min:2 max:3 link:true asterisk:true -->
 * [Install NextFlow](#install-nextflow)
@@ -43,10 +43,10 @@ cd $DOWNDIR && wget -l inf -nc -nH --cut-dirs=2 -R 'index.html*' -r --no-parent 
 ### Docker
 First, install docker on your system: [Docker Installation Instructions](https://docs.docker.com/engine/installation/)
 
-Then, running the pipeline with the option `-profile docker` tells Nextflow to enable Docker for this run. An image containing all of the software requirements will be automatically fetched and used from dockerhub ([https://hub.docker.com/r/dolphinnext/rnaseq](https://hub.docker.com/r/dolphinnext/rnaseq)).
+Then, running the pipeline with the option `-profile docker` tells Nextflow to enable Docker for this run. An image containing all of the software requirements will be automatically fetched and used from dockerhub ([https://hub.docker.com/r/dolphinnext/riboseq](https://hub.docker.com/r/dolphinnext/riboseq)).
 
 ```
-nextflow run dolphinnext/rnaseq -profile docker --DOWNDIR /path/to/save/ribosome-profiling --reads '*.fastq.gz' --genome_build human_hg38_gencode_v30
+nextflow run dolphinnext/ribosome-profiling -profile docker --DOWNDIR /path/to/save/ribosome-profiling --reads '*.fastq.gz' --genome_build human_hg38_gencode_v30
 ```
 
 ### Singularity
@@ -54,5 +54,5 @@ If you're not able to use Docker then [Singularity](http://singularity.lbl.gov/)
 The process is very similar: running the pipeline with the option `-profile singularity` tells Nextflow to enable singularity for this run. An docker image will be automatically converted into singularity image and used in the pipeline.
 
 ```
-nextflow run dolphinnext/rnaseq -profile singularity --DOWNDIR /path/to/save/ribosome-profiling --reads '*.fastq.gz' --genome_build human_hg38_gencode_v30
+nextflow run dolphinnext/ribosome-profiling -profile singularity --DOWNDIR /path/to/save/ribosome-profiling --reads '*.fastq.gz' --genome_build human_hg38_gencode_v30
 ```

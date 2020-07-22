@@ -13,13 +13,13 @@ NXF_OPTS='-Xms1g -Xmx4g'
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run dolphinnext/rnaseq -profile docker --DOWNDIR /path/to/save/ribosome-profiling --reads '*_R{1,2}.fastq.gz' --mate 'pair' --genome_build human_hg38_gencode_v30
+nextflow run dolphinnext/ribosome-profiling -profile docker --DOWNDIR /path/to/save/ribosome-profiling --reads '*_R{1,2}.fastq.gz' --mate 'pair' --genome_build human_hg38_gencode_v30
 ```
 
 If you're running for the first time, you need to enable `--run_checkAndBuild` paramater as follows:
 
 ```bash
-nextflow run dolphinnext/rnaseq -profile docker --DOWNDIR /path/to/save/ribosome-profiling --reads '*_R{1,2}.fastq.gz' --mate 'pair' --genome_build human_hg38_gencode_v30 --run_checkAndBuild 'yes'
+nextflow run dolphinnext/ribosome-profiling -profile docker --DOWNDIR /path/to/save/ribosome-profiling --reads '*_R{1,2}.fastq.gz' --mate 'pair' --genome_build human_hg38_gencode_v30 --run_checkAndBuild 'yes'
 ```
 
 
@@ -49,7 +49,7 @@ If `-profile` is not specified at all the pipeline will be run locally and expec
 
 * `docker`
   * A generic configuration profile to be used with [Docker](http://docker.com/)
-  * Pulls software from Dockerhub: [`dolphinnext/rnaseq`](http://hub.docker.com/r/dolphinnext/rnaseq/)
+  * Pulls software from Dockerhub: [`dolphinnext/riboseq`](http://hub.docker.com/r/dolphinnext/riboseq/)
 * `singularity`
   * A generic configuration profile to be used with [Singularity](http://singularity.lbl.gov/)
   * Pulls software from DockerHub
