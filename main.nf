@@ -822,8 +822,7 @@ params.densebuilder_main_path =  ""  //* @input
 params.riboseq_buildDenseTables_rpkm_path =  ""  //* @input
 params.riboseq_buildDenseTables_rpkm_utr3adj_path =  ""  //* @input
 
-thread = params.riboseq_Densebuilder.thread
-control_sample_prefix = params.riboseq_Densebuilder.control_sample_prefix
+thread = "40" 
 
 //* autofill
 if ($HOSTNAME == "default"){
@@ -832,9 +831,9 @@ if ($HOSTNAME == "default"){
 }
 //* platform
 if ($HOSTNAME == "ghpcc06.umassrc.org"){
-    $TIME = 2500
-    $CPU  = 10
-    $MEMORY = 30
+    $TIME = 700
+    $CPU  = 8
+    $MEMORY = 25
     $QUEUE = "long"
 } 
 //* platform
@@ -848,11 +847,7 @@ input:
 output:
  set val(name), file("${dirName}")  into g_5_outputDir_g_9
 
-when:
-(params.run_riboseq_workflow && (params.run_riboseq_workflow == "yes")) || !params.run_riboseq_workflow
-
 script:
-
 bambai = bambai.toString()
 bam = bambai.split(" ")[0]
 dirName = name + "Densebuilder"
@@ -1838,11 +1833,17 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 
 process codon_occupancies {
 
+publishDir params.outdir, overwrite: true, mode: 'copy',
+	saveAs: {filename ->
+	if (filename =~ /${name}$/) "results/$filename"
+}
+
 input:
  set val(name), file(dirName) from g_9_outputDir_g_12
 
 output:
  set val(name), file("${newdirName}")  into g_12_outputDir_g_6
+ file "${name}"  into g_12_resultsdir
 
 script:
 newdirName = name + "codon_occupancies"
@@ -2031,20 +2032,28 @@ def main():
     p2 = Pool(nodes = ${thread})
     p2.map(get_codon_occ_eA, samplelist)
     os.system("mv ${name} ${newdirName}")
-
+    os.system("mkdir ${name}")
+    os.system("rsync -avzu --exclude='Density_rpm' --exclude='DensityUnnormalized' ${newdirName}/ ${name}/")
 
 if __name__ == '__main__':
 	main()
 """
 }
 
+sample_order = params.aggr.sample_order
+amino_acid_list = params.aggr.amino_acid_list
+color_code_list = params.aggr.color_code_list
+control_group_name = params.aggr.control_group_name
+control_group = params.aggr.control_group
+treatment_group_name = params.aggr.treatment_group_name
+treatment_group = params.aggr.treatment_group
+//* @style @array:{treatment_group_name, treatment_group} @multicolumn:{control_group_name,control_group},{treatment_group_name,treatment_group}
 
 process aggr {
 
 publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /${name}\/countTables\/.*.csv$/) "count_tables/$filename"
-	else if (filename =~ /${name}_result$/) "results/$filename"
 }
 
 input:
@@ -2053,12 +2062,10 @@ input:
 output:
  file "${name}"  into g_6_outputDir_g_7, g_6_outputDir_g_10, g_6_outputDir_g_13, g_6_outputDir_g_15, g_6_outputDir_g_17
  set val(name), file("${name}/countTables/*.csv")  into g_6_outputFileTab
- file "${name}_result"  into g_6_resultsdir
 
 """
 mv ${dirName} ${name}
-mkdir ${name}_result
-rsync -avzu --exclude='Density_rpm' --exclude='DensityUnnormalized' ${name}/ ${name}_result/
+
 
 """
 }
@@ -2069,6 +2076,8 @@ process figure4B {
 publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
+	else if (filename =~ /.*.sh$/) "figure_data/$filename"
+	else if (filename =~ /.*.csv$/) "figure_data/$filename"
 }
 
 input:
@@ -2076,6 +2085,8 @@ input:
 
 output:
  file "*.pdf"  into g_10_outputFilePdf
+ file "*.sh"  into g_10_script
+ file "*.csv"  into g_10_csvout
 
 script:
 nameAll = nameAll.collect{ '"' + it + '"'}
@@ -2088,7 +2099,7 @@ import matplotlib.pyplot as plt
 plt.rcParams['pdf.fonttype'] = 42 # this keeps most text as actual text in PDFs, not outlines
 
 ## import dependencies
-import sys
+import sys, os
 import math
 import matplotlib.patches as mpatches
 import numpy as np
@@ -2099,21 +2110,16 @@ import seaborn as sns
 # from pylab import *
 import argparse
 import importlib
-
+import matplotlib.cm as cm
 
 samplelist = ${nameAll}
-### set colors
-black = '#000000'
-orange = '#ffb000'
-cyan = '#63cfff'
-red = '#eb4300'
-green = '#00c48f'
-pink = '#eb68c0'
-yellow = '#fff71c'
-blue = '#006eb9'
+opt_sample_order = '${sample_order}'
+new_sample_order = [x.strip() for x in opt_sample_order.split(',')]
+if len(new_sample_order) > 1:
+	samplelist = new_sample_order 
 
-# colorList = [black, orange, red, green, blue, yellow, pink]
-colorList = ['lightgray', 'gray', 'black', 'gold', 'darkorange','orangred']
+
+colorList = ['lightgray', 'gray', 'black']
 
 def log_trans_b10(x):
 	try:
@@ -2164,12 +2170,18 @@ def plot_RRTS_boxplot(df, dflist, namelist):
 
 	ax = plt.gca()
 	ax.set_ylim((0,1.1))
+	plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+	plt.title('RRTS values of transcripts sorted by normal termination codon identity.')
+	plt.xticks(rotation=60)
 	plt.savefig(figout, format='pdf', bbox_inches = "tight")
 
 def main():
 	df, dflist, namelist = load_countTables()
 	print df.head()
+	df.to_csv("Figure4B_data.csv")
 	plot_RRTS_boxplot(df, dflist, namelist)
+	if os.path.exists(".command.sh"):
+		os.system("cp .command.sh Fig4B.sh")
 
 if __name__ == '__main__':
 	main()
@@ -2183,6 +2195,7 @@ process figures {
 publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
+	else if (filename =~ /.*.sh$/) "figure_data/$filename"
 }
 
 input:
@@ -2190,6 +2203,7 @@ input:
 
 output:
  file "*.pdf"  into g_7_outputFilePdf
+ file "*.sh"  into g_7_script
 
 script:
 nameAll = nameAll.collect{ '"' + it + '"'}
@@ -2215,6 +2229,7 @@ import pandas as pd
 import argparse
 import importlib
 import random
+import matplotlib.cm as cm
 
 ### inputs:
 alignposition = "2" 	# set 1 for start codon and 2 for stop codon
@@ -2231,16 +2246,26 @@ eEmax = 19
 norm_type = "rpm"
 
 samples = ${nameAll}
+opt_sample_order = '${sample_order}'
+new_sample_order = [x.strip() for x in opt_sample_order.split(',')]
+if len(new_sample_order) > 1:
+	samples = new_sample_order
+
 print samples
 
 sample_plot_names = samples
 samples_plotted = '_vs_'.join(samples)
 
 number_of_colors = len(samples)
-colorList = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
-             for i in range(number_of_colors)]
-print colorList
-col_list = colorList[::-1]
+col_list = []
+for i in range(number_of_colors):
+	col_list.append( cm.Spectral(i/10.,1))
+
+# optional color list
+color_code_list = '${color_code_list}'
+new_code_list = [x.strip() for x in color_code_list.split(',')]
+if len(new_code_list) > 1:
+	col_list = new_code_list
 
 if pop == "fl":
 	minlen = str(flmin)
@@ -2325,7 +2350,10 @@ def avggene_riboshift_plot_overlay(alignposition, ribosome_site, fiveorthreeprim
 		for i in range(len(df_fl_list)):
 			df_custom_list[i].plot.line(x=df_custom_list[i].index+counter, y=df_custom_list[i].columns.values[0], ax=ax, color = col_list[i], lw=1, use_index=True, label=sample_plot_names[i])
 
-	plt.legend(loc=1, prop={'size': 6})
+	#plt.legend(loc=1, prop={'size': 6})
+	plt.ylabel ('Normalized Reads')
+	plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+	plt.annotate('Average gene (or metagene) analysis is performed.\\nAll transcripts at their annotated stop codons are aligned\\nand normalized ribosome densities are calculated in this window.', (0,0), (0, -40), xycoords='axes fraction', textcoords='offset points', va='top')
 	plt.savefig(plot_outfile, format = 'pdf', bbox_inches = "tight")
 	plt.close()
 
@@ -2398,13 +2426,18 @@ def avggene_riboshift_plot_overlay_zoom(alignposition, ribosome_site, fiveorthre
 		for i in range(len(df_fl_list)):
 			df_custom_list[i].plot.line(x=df_custom_list[i].index+counter, y=df_custom_list[i].columns.values[0], ax=ax, color = col_list[i], lw=1, use_index=True, label=sample_plot_names[i])
 
-	plt.legend(loc=1, prop={'size': 6})
+	plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+	plt.annotate('Zoomed version of Fig 2A.', (0,0), (0, -40), xycoords='axes fraction', textcoords='offset points', va='top')
+	plt.ylabel ('Normalized Reads')
+	#plt.legend(loc=1, prop={'size': 6})
 	plt.savefig(plot_outfile, format = 'pdf', bbox_inches = "tight")
 	plt.close()
 
 def main():
 	avggene_riboshift_plot_overlay(alignposition, ribosome_site, normalization='eq', threshold=threshold)
 	avggene_riboshift_plot_overlay_zoom(alignposition, ribosome_site, normalization='eq', threshold=threshold)
+	os.system("cp .command.sh Fig2AB.sh")
+	
 
 if __name__ == '__main__':
 	main()
@@ -2431,6 +2464,7 @@ process figure3S1C {
 publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
+	else if (filename =~ /.*.sh$/) "figure_data/$filename"
 }
 
 input:
@@ -2438,6 +2472,7 @@ input:
 
 output:
  file "*.pdf"  into g_17_outputFilePdf
+ file "*.sh"  into g_17_script
 
 script:
 nameAll = nameAll.collect{ '"' + it + '"'}
@@ -2465,8 +2500,13 @@ pd.set_option('display.max_columns', 40)
 import argparse
 import importlib
 import rphelper as rph
+import matplotlib.cm as cm
 
 samplelist = ${nameAll}
+opt_sample_order = '${sample_order}'
+new_sample_order = [x.strip() for x in opt_sample_order.split(',')]
+if len(new_sample_order) > 1:
+	samplelist = new_sample_order 
 ftsize = [15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 
 
@@ -2579,6 +2619,8 @@ def region_size_dist_ftsize(readsize, sample):
 
 
 def main():
+	if os.path.exists(".command.sh"):
+		os.system("cp .command.sh Fig3S1C.sh")
 	counter = 0
 	treatlist = samplelist
 	for sample in samplelist:
@@ -2610,7 +2652,9 @@ def main():
 		df.plot.line()
 		plt.xticks([15,20,25,30,35,40])
 		plt.title(sample)
-
+		plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+		plt.ylabel ('Percent of Reads')
+		plt.title ('Read size distribution')
 		plt.savefig(outfig, format='pdf', bbox_inches="tight")
 		plt.close()
 		counter +=1
@@ -2626,6 +2670,7 @@ process figure2S3A {
 publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
+	else if (filename =~ /.*.sh$/) "figure_data/$filename"
 }
 
 input:
@@ -2633,6 +2678,7 @@ input:
 
 output:
  file "*.pdf"  into g_15_outputFilePdf
+ file "*.sh"  into g_15_script
 
 script:
 nameAll = nameAll.collect{ '"' + it + '"'}
@@ -2658,6 +2704,8 @@ import pandas as pd
 import argparse
 import importlib
 import random
+import matplotlib.cm as cm
+
 
 ### inputs:
 alignposition = "1"     # set 1 for start codon and 2 for stop codon
@@ -2674,14 +2722,24 @@ eEmax = 19
 norm_type = "rpm"
 
 samples = ${nameAll}
+opt_sample_order = '${sample_order}'
+new_sample_order = [x.strip() for x in opt_sample_order.split(',')]
+if len(new_sample_order) > 1:
+	samples = new_sample_order  
 
 sample_plot_names = samples
 samples_plotted = '_vs_'.join(samples)
 number_of_colors = len(samples)
-colorList = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
-    for i in range(number_of_colors)]
-print colorList
-col_list = colorList[::-1]
+col_list = []
+for i in range(number_of_colors):
+	col_list.append( cm.Spectral(i/10.,1))
+
+# optional color list
+color_code_list = '${color_code_list}'
+new_code_list = [x.strip() for x in color_code_list.split(',')]
+if len(new_code_list) > 1:
+	col_list = new_code_list
+
 
 if pop == "fl":
     minlen = str(flmin)
@@ -2752,19 +2810,23 @@ def avggene_riboshift_plot_overlay(alignposition, ribosome_site, fiveorthreeprim
         for i in range(len(df_fl_list)):
             df_fl_list[i].plot.line(x=df_fl_list[i].index+counter,
                                     y=df_fl_list[i].columns.values[0],
-                                    ax=ax, color = colorList[i],
+                                    ax=ax, color = col_list[i],
                                     lw=1,
                                     use_index=True,
                                     label=sample_plot_names[i])
             counter +=6
     ax.set_xlim(-50,100)
-    plt.legend(loc=1, prop={'size': 6})
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.ylabel ('Normalized Reads')
+    plt.annotate('Average gene (or metagene) analysis is performed.\\nAll transcripts at their annotated start codons are aligned\\nand normalized ribosome densities are calculated in this window.', (0,0), (0, -40), xycoords='axes fraction', textcoords='offset points', va='top')
     plt.savefig(plot_outfile, format = 'pdf', bbox_inches = "tight")
     plt.close()
 
 
 def main():
     avggene_riboshift_plot_overlay(alignposition, ribosome_site, normalization='eq', threshold=threshold)
+    if os.path.exists(".command.sh"):
+    	os.system("cp .command.sh Fig2S3A.sh")
 
 if __name__ == '__main__':
     main()
@@ -2778,6 +2840,8 @@ process figure2S3B {
 publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
+	else if (filename =~ /.*.sh$/) "figure_data/$filename"
+	else if (filename =~ /.*.csv$/) "figure_data/$filename"
 }
 
 input:
@@ -2785,9 +2849,13 @@ input:
 
 output:
  file "*.pdf"  into g_13_outputFilePdf
+ file "*.sh"  into g_13_script
+ file "*.csv"  into g_13_csvout
 
 script:
 nameAll = nameAll.collect{ '"' + it + '"'}
+treatment_group_str = treatment_group.collect{ '"' + it + '"'}
+treatment_group_name_str = treatment_group_name.collect{ '"' + it + '"'}
 """
 #!/usr/bin/env python
 # This script plots codon occupancies relative to untreated cells
@@ -2810,25 +2878,39 @@ readlength = "28to35"
 shift = "A"
 
 ## indexes
-samplelist = ${nameAll}
-ctrl_sample = '${control_sample_prefix}'
-compare_list = samplelist[:]
-compare_list.remove(ctrl_sample)
+ctrl_sample = '${control_group}'
+ctrl_sample_name = '${control_group_name}'
+ctrl_samples = [x.strip() for x in ctrl_sample.split(',')]
+treat_samples = ${treatment_group_str}
+treat_samples_name = ${treatment_group_name_str}
+print ctrl_samples
+print treat_samples
 
-## colors
-black = '#000000'
-orange = '#ffb000'
-cyan = '#63cfff'
-red = '#eb4300'
-green = '#00c48f'
-pink = '#eb68c0'
-yellow = '#fff71c'
-blue = '#006eb9'
+amino_acid_list = '${amino_acid_list}'
+aa_list = [x.strip() for x in amino_acid_list.split(',')]
+
 
 colorDict = {
-	'D':cyan,
-	'G':orange,
-	'I':green
+	'A':'#000075',
+	'C':'#808080',
+	'D':'#e6194b',
+	'E':'#3cb44b',
+	'F':'#ffe119',
+	'G':'#4363d8',
+	'H':'#f58231',
+	'I':'#911eb4',
+	'K':'#46f0f0',
+	'L':'#f032e6',
+	'M':'#bcf60c',
+	'N':'#fabebe',
+	'P':'#008080',
+	'Q':'#e6beff',
+	'R':'#9a6324',
+	'S':'#fffac8',
+	'T':'#800000',
+	'V':'#aaffc3',
+	'W':'#808000',
+	'Y':'#ffd8b1'
 }
 
 codonDict = {
@@ -2855,7 +2937,6 @@ codonDict = {
 }
 
 
-
 def log_trans_b10(x):
 	try:
 		return math.log(x, 10)
@@ -2879,35 +2960,48 @@ def corrfunc(x, y, **kws):
 
 def plot_codons():
 	counter = 0
-	for i in range(len(compare_list)):
-		comp_sample = compare_list[i]
-		df1 = pd.read_csv("%s/codon/%s_%sshift_%s__5occupancy_15cds5trim_15cds3trim_codonOccupancy.csv" % 
-						 (ctrl_sample, ctrl_sample, shift, readlength), index_col=0)
-		df2 = pd.read_csv("%s/codon/%s_%sshift_%s__5occupancy_15cds5trim_15cds3trim_codonOccupancy.csv" % 
-						 (comp_sample, comp_sample, shift, readlength), index_col=0)
-
-		dflist = [df1, df2]
-
+	for i in range(len(treat_samples)):
+		comp_sample = treat_samples[i]
+		comp_sample_name = treat_samples_name[i]
+		comp_samples = [x.strip() for x in comp_sample.split(',')]
+		dflist = []
+		sublist = [] #keep all sample names that are going to be compared
+		cnt_log2 = [] #all control sample names + "_log2"
+		treat_log2 = [] #all treatment sample names + "_log2"
+		for i in range(len(ctrl_samples)):
+			ctrl_samp = ctrl_samples[i]
+			df = pd.read_csv("%s/codon/%s_%sshift_%s__5occupancy_15cds5trim_15cds3trim_codonOccupancy.csv" % (ctrl_samp, ctrl_samp, shift, readlength), index_col=0)
+			dflist.append(df)
+			sublist.append(ctrl_samp)
+			cnt_log2.append(ctrl_samp+"_log2")
+			
+		for k in range(len(comp_samples)):
+			comp_samp = comp_samples[k]
+			df = pd.read_csv("%s/codon/%s_%sshift_%s__5occupancy_15cds5trim_15cds3trim_codonOccupancy.csv" % (comp_samp, comp_samp, shift, readlength), index_col=0)
+			dflist.append(df)
+			sublist.append(comp_samp)
+			treat_log2.append(comp_samp+"_log2")
+				
 		dfout = pd.concat(dflist, axis=1)
 		dfout.drop(index=['TAA', 'TAG', 'TGA'],axis=0,inplace=True)
-		dfout = dfout[[ctrl_sample,comp_sample]].apply(pd.to_numeric)
-
+		dfout = dfout[sublist].apply(pd.to_numeric)
+		
 		for col in dfout.columns:
 			dfout[col+'_log2'] = dfout[col].apply(log_trans_b2)
 
 
-		dfout['ctrl_mean'] = dfout[[ctrl_sample+'_log2']].mean(axis=1)
-		dfout['ctrl_std'] = dfout[[ctrl_sample+'_log2']].std(axis=1)
-		dfout['ctrl_sem'] = dfout[[ctrl_sample+'_log2']].sem(axis=1)
+		dfout['ctrl_mean'] = dfout[cnt_log2].mean(axis=1)
+		dfout['ctrl_std'] = dfout[cnt_log2].std(axis=1)
+		dfout['ctrl_sem'] = dfout[cnt_log2].sem(axis=1)
 
-		dfout['treat_mean'] = dfout[[comp_sample+'_log2']].mean(axis=1)
-		dfout['treat_std'] = dfout[[comp_sample+'_log2']].std(axis=1)
-		dfout['treat_sem'] = dfout[[comp_sample+'_log2']].sem(axis=1)
-
+		dfout['treat_mean'] = dfout[treat_log2].mean(axis=1)
+		dfout['treat_std'] = dfout[treat_log2].std(axis=1)
+		dfout['treat_sem'] = dfout[treat_log2].sem(axis=1)
+		dfout.to_csv("Figure2S3B_data_"+ctrl_sample_name+"_vs_"+comp_sample_name+".csv")
 
 
 		### plotting:
-		fig, ax = plt.subplots(figsize=(6,6))
+		fig, ax = plt.subplots(figsize=(6,8))
 
 		for aa in codonDict:
 			for cdn in codonDict[aa]:
@@ -2928,7 +3022,7 @@ def plot_codons():
 							linewidth = 0.75
 							)	
 
-		for aa in colorDict:
+		for aa in aa_list:
 			for cdn in codonDict[aa]:
 	#           
 				plt.scatter(x=dfout.loc[cdn,'ctrl_mean'], 
@@ -2947,13 +3041,15 @@ def plot_codons():
 				plt.text(x=dfout.loc[cdn,'ctrl_mean']+0.00, 
 						 y=dfout.loc[cdn,'treat_mean']-0.00, 
 						 color=colorDict[aa], #"black", 
-						 s=cdn, 
+						 s=cdn.replace('T', 'U'), 
 						 fontsize = 10, 
 						 va="top", 
 						 ha="left")
 
-		plt.title(ctrl_sample+' vs '+comp_sample, color='gray')
-
+		plt.xlabel ("Codon Occupancy - " + ctrl_sample_name)
+		plt.ylabel ("Codon Occupancy - " + comp_sample_name)
+		plt.annotate('Codon occupancies are plotted on the graph. Numbers on the axis\\nare 2 to the power of the value (e.g. 0.5 means 2^0.5). The average\\noccupancy between two samples is plotted for all 61 sense codons.\\nPearson correlations are displayed at the top.', (0,0), (0, -50), xycoords='axes fraction', textcoords='offset points', va='top')
+		
 		lims = [
 			np.min([-1.0, -1.0]),
 			np.max([1.5, 1.5]),
@@ -2965,7 +3061,7 @@ def plot_codons():
 		ax.set_ylim(lims)
 		corrfunc(dfout['ctrl_mean'], dfout['treat_mean'])
 
-		outfile = "Fig2S3B_%s_vs_%s.pdf" % (ctrl_sample, comp_sample)
+		outfile = "Fig2S3B_%s_vs_%s.pdf" % (ctrl_sample_name, comp_sample_name)
 		plt.savefig(outfile, format="pdf")
 
 		counter +=1
@@ -2973,6 +3069,8 @@ def plot_codons():
 
 def main():
 	plot_codons()
+	if os.path.exists(".command.sh"):
+		os.system("cp .command.sh Fig2S3B.sh")
 
 if __name__ == '__main__':
 	main()
