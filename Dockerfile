@@ -18,7 +18,7 @@ RUN mkdir -p /project /nl /mnt /share
 RUN pip install 'biopython==1.58'
 RUN python -c "import Bio.Seq"
 RUN python -c "import GFF"
-RUN pip install statannot
+RUN pip install git+https://github.com/webermarcolivier/statannot.git
 
 ### SRA-toolkit
 RUN cd /usr/bin && wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.7/sratoolkit.2.10.7-ubuntu64.tar.gz && \
