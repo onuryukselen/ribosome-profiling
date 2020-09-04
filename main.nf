@@ -5393,18 +5393,18 @@ params.densebuilder_main_path =  ""  //* @input
 params.riboseq_buildDenseTables_rpkm_path =  ""  //* @input
 params.riboseq_buildDenseTables_rpkm_utr3adj_path =  ""  //* @input
 
-thread = "40" 
+thread = "10" 
 
 //* autofill
 if ($HOSTNAME == "default"){
-    $CPU  = 10
-    $MEMORY = 30
+    $CPU  = 2
+    $MEMORY = 50
 }
 //* platform
 if ($HOSTNAME == "ghpcc06.umassrc.org"){
-    $TIME = 700
-    $CPU  = 8
-    $MEMORY = 25
+    $TIME = 750
+    $CPU  = 2
+    $MEMORY = 50
     $QUEUE = "long"
 } 
 //* platform
