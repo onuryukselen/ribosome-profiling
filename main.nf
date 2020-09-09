@@ -5402,7 +5402,7 @@ if ($HOSTNAME == "default"){
 }
 //* platform
 if ($HOSTNAME == "ghpcc06.umassrc.org"){
-    $TIME = 750
+    $TIME = 1300
     $CPU  = 2
     $MEMORY = 50
     $QUEUE = "long"
@@ -6631,7 +6631,7 @@ input:
  set val(name), file(dirName) from g_12_outputDir_g_6
 
 output:
- file "${name}"  into g_6_outputDir_g_7, g_6_outputDir_g_10, g_6_outputDir_g_13, g_6_outputDir_g_15, g_6_outputDir_g_17
+ file "${name}"  into g_6_outputDir_g_7, g_6_outputDir_g_10, g_6_outputDir_g_13, g_6_outputDir_g_15, g_6_outputDir_g_17, g_6_outputDir_g_52
  set val(name), file("${name}/countTables/*.csv")  into g_6_outputFileTab
 
 """
@@ -6777,7 +6777,7 @@ def stat_table(df, dflist, namelist):
 def main():
 	df, dflist, namelist = load_countTables()
 	print df.head()
-	df.to_csv("Figure4B_data.csv")
+	df.to_csv("Figure4B_data.csv", index=False)
 	plot_RRTS_boxplot(df, dflist, namelist)
 	stat_table(df, dflist, namelist)
 	if os.path.exists(".command.sh"):
@@ -7042,6 +7042,253 @@ def main():
 
 if __name__ == '__main__':
 	main()
+"""
+}
+
+
+process figure2C {
+
+publishDir params.outdir, overwrite: true, mode: 'copy',
+	saveAs: {filename ->
+	if (filename =~ /.*.pdf$/) "reports/$filename"
+	else if (filename =~ /.*.sh$/) "figure_data/$filename"
+}
+
+input:
+ file nameAll from g_6_outputDir_g_52.collect()
+
+output:
+ file "*.pdf"  into g_52_outputFilePdf
+ file "*.sh"  into g_52_script
+
+script:
+treatment_group_str = treatment_group.collect{ '"' + it + '"'}
+treatment_group_name_str = treatment_group_name.collect{ '"' + it + '"'}
+"""
+#!/usr/bin/env python
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt 
+plt.rcParams['pdf.fonttype'] = 42 # this keeps most text as actual text in PDFs, not outlines
+
+## import dependencies
+import sys
+from Bio import SeqIO
+import twobitreader
+import GFF
+import csv
+import os
+import pandas as pd
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.max_rows', 300)
+import seaborn as sns
+import argparse
+import importlib
+import matplotlib.cm as cm
+
+### inputs:
+alignposition = "2" 	# set 1 for start codon and 2 for stop codon
+pop = 'fl'
+ribosome_site = "A" 	# A, P, E, or 0
+normalization = 'eq' # 'uneq' for rpm and 'eq' for rpkm
+flmin = 28
+flmax = 35
+eAmin = 21
+eAmax = 24
+eEmin = 18
+eEmax = 19
+
+### Footprint assignment
+norm_type = "rpm" # either 'raw' for no normalization or 'rpm' for normalization to all mapped reads in alignment BAM file
+threshold = '0' 
+
+## indexes
+ctrl_sample = '${control_group}'
+ctrl_sample_name = '${control_group_name}'
+ctrl_sample_names = [ctrl_sample_name]
+ctrl_samples = [x.strip() for x in ctrl_sample.split(',')]
+treat_samples = ${treatment_group_str}
+treat_samples_name = ${treatment_group_name_str}
+samples = ctrl_samples + treat_samples
+sample_names = ctrl_sample_names + treat_samples_name
+
+#colorList
+number_of_colors = len(samples)
+colorList = []
+for i in range(number_of_colors):
+	colorList.append( cm.Spectral(i/10.,1))
+
+# optional color list
+color_code_list = '${color_code_list}'
+new_code_list = [x.strip() for x in color_code_list.split(',')]
+if len(new_code_list) > 1:
+	colorList = new_code_list
+
+# grouping samples for the plot
+splittedSamples=[]
+treatments=[]
+colorVals=[]
+for i in range(len(sample_names)):
+	sampName = sample_names[i]
+	colorVal = colorList[i]
+	sampList = [x.strip() for x in samples[i].split(',')]
+	for k in range(len(sampList)):
+		splittedSamples.append(sampList[k])
+		treatments.append(sampName)
+		colorVals.append(colorVal)
+
+print splittedSamples
+print treatments
+print colorVals
+	
+
+if pop == "fl":
+	minlen = str(flmin)
+	maxlen = str(flmax)
+elif pop == "eA":
+	minlen = str(eAmin)
+	maxlen = str(eAmax)
+elif pop == "eE":
+	minlen = str(eEmin)
+	maxlen = str(eEmax)
+elif pop == "custom":
+	minlen = customSize
+	maxlen = customSize
+else:
+	print "whoops, something went wrong here, horribly horribly wrong!"
+
+
+### for already shifted samples, for now
+def avggene_riboshift_plot_overlay(alignposition, ribosome_site, normalization, fiveorthreeprime='5'):
+	# read_length_list = ftsize
+	alignpos = alignposition # '1' for start, '2' for stop
+	assignment = fiveorthreeprime # should be 5' mapped at this point
+	norm = normalization # 'uneq' for no normalization; 'eq' to give equal weight to all genes
+	ribosome_shift = ribosome_site # 'A' or 'P' or maybe 'E' later
+
+	df_fl_list = []
+	df_eA_list = []
+	df_eE_list = []
+	df_aL_list = []
+
+	df_custom_list = []
+	
+	for file in splittedSamples:
+		fp_assign_path = file
+		avggene_csv_path = "%s/avggene%s_ORF%s_%sshift_%s%s150" % (fp_assign_path, alignpos, norm_type, ribosome_shift, assignment, norm) # norm should be 'uneq' for now
+
+	###
+
+	## get paths to stored csv average gene files
+		if pop == 'custom':
+			if norm == 'uneq':
+				custom_csv = '%s/%s_%s_shiftCustom_rpkmThresh0_%sto%sf_avg_%s.csv' % (avggene_csv_path, file, customSize, customSize, customSize, alignpos)
+		if norm == 'uneq':
+			fl_avggene_csv = '%s/%s_fl_rpkmThresh0_%sto%sf_avg_%s_cdsNorm.csv' % (avggene_csv_path, file, flmin, flmax, alignpos)
+		elif norm == 'eq':
+			fl_avggene_csv = '%s/%s_fl_rpkmThresh10_%sto%sf_avg_%s_cdsNorm.csv' % (avggene_csv_path, file, flmin, flmax, alignpos)
+
+		else:
+			print "no norm selected"
+
+		fl_avggene_df = pd.read_csv(fl_avggene_csv, index_col = 0, header=0)
+		df_fl_list.append(fl_avggene_df)
+
+	#######
+
+	counter = 0
+	# for avdf in df_fl_list:
+	relDenList = []
+
+	if pop == 'fl':
+		dfFrame = df_fl_list
+	elif pop == 'eA':
+		dfFrame = df_eA_list
+	elif pop == 'eE':
+		dfFrame = df_eE_list
+	elif pop == 'custom':
+		dfFrame = df_custom_list
+	else:
+		print "pop not set, no plot was made"
+
+	for avdf in dfFrame:
+		# print avdf
+
+		# print avdf.loc[-148:-17] ## not zero based with loc
+		# print len(avdf.loc[-148:-17])
+
+		# print avdf.loc[5:100, 'avg'] ## not zero based with loc
+		# print len(avdf.loc[5:100])
+
+		### CDS - count regions from nt -148 to -17 
+		### UTR3 - countr regiona from 5 to 100, inclusive
+
+
+		rpfCounts = avdf['avg']
+
+		cdsCounts = avdf.loc[-148:-17, 'avg']
+		cdsDense = (sum(cdsCounts)/len(cdsCounts))
+
+		utr3Counts = avdf.loc[5:100, 'avg'] ## do not include final position
+		utr3Dense = (sum(utr3Counts)/len(utr3Counts))
+
+		relDense = (utr3Dense/cdsDense)*100
+		relDenList.append(relDense)
+
+		counter +=1
+
+
+	figout = "Fig2C.pdf"
+	fig,ax = plt.subplots(figsize=(5,5))
+	dfplt = pd.DataFrame(relDenList, index=splittedSamples, columns=['utrPer'])
+	dfplt['treatments'] = treatments
+	dfplt['colorVal'] = colorVals
+	
+	print relDenList
+	# splittedSamples: ['c1bamtofq', 'e1bamtofq', 'e1bamtofq_dup']
+	# relDenList:[0.7728843047744274, 4.729053958564587, 4.519081209823026]
+	# return: av_vals
+	# for each sample_names ["con", "exp1", "exp2"] take average of relDenList 
+	av_vals=[]
+	ind = 0;
+	for i in range(len(sample_names)):
+		sampList = [x.strip() for x in samples[i].split(',')]
+		relDenLength = len(sampList)
+		indStart = ind
+		ind +=relDenLength
+		renDenSplit = relDenList[indStart:ind]
+		mean = sum(renDenSplit) / len(renDenSplit)
+		av_vals.append(mean)
+	print av_vals
+	
+	dfav = pd.DataFrame.from_dict({
+			"tr":sample_names,
+			'av':av_vals
+		})
+
+
+	### seaborn catplots:
+	fig, ax = plt.subplots(figsize=(6,6))
+	sns.boxplot(data=dfav, x='tr', y='av', showbox=False , width = 0.5, 
+					 showcaps=False, color = "black")
+	sns.swarmplot(data=dfplt, x='treatments', y='utrPer', size=8, ax=ax, palette=colorList)
+	ax=plt.gca()
+
+	for item in ax.get_xticklabels():
+		item.set_rotation(90)
+	ax.set_ylim(0, 25)
+	plt.savefig(figout, format='pdf', bbox_inches = "tight")
+
+
+##########
+def main():
+	avggene_riboshift_plot_overlay(alignposition, ribosome_site, normalization)
+	if os.path.exists(".command.sh"):
+		os.system("cp .command.sh Fig2C.sh")
+
+if __name__ == '__main__':
+    main()
+
 """
 }
 
@@ -8297,7 +8544,7 @@ my @files = ();
 # order must be in this order for chipseq pipeline: bowtie->dedup
 # rsem bam pipeline: dedup->rsem, star->dedup
 # riboseq ncRNA_removal->star
-my @order = ("adapter_removal","trimmer","quality","extractUMI","sequential_mapping","ncRNA_removal","bowtie","star","hisat2","tophat2", "dedup","rsem");
+my @order = ("adapter_removal","trimmer","quality","extractUMI","sequential_mapping","ncRNA_removal","bowtie","star","hisat2","tophat2", "dedup","rsem","kallisto");
 for ( my $k = 0 ; $k <= $#order ; $k++ ) {
     for ( my $i = 0 ; $i <= $#rawFiles ; $i++ ) {
         if ( $rawFiles[$i] =~ /$order[$k]/ ) {
