@@ -10,12 +10,12 @@ if (!params.reads){params.reads = ""}
 
 Channel.value(params.mate).into{g_1_mate_g_4;g_1_mate_g_41;g_1_mate_g0_3;g_1_mate_g0_11;g_1_mate_g0_16;g_1_mate_g0_18;g_1_mate_g0_19;g_1_mate_g0_20;g_1_mate_g0_21;g_1_mate_g42_26;g_1_mate_g42_30;g_1_mate_g42_32}
 Channel
-	.fromFilePairs( params.reads , size: params.mate == "single" ? 1 : params.mate == "pair" ? 2 : params.mate == "triple" ? 3 : params.mate == "quadruple" ? 4 : -1 )
+	.fromFilePairs( params.reads , size: (params.mate != "pair") ? 1 : 2 )
 	.ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
 	.into{g_2_reads_g0_3;g_2_reads_g0_18}
 
 
-//* params.run_Adapter_Removal =   "no"   //* @dropdown @options:"yes","no" @show_settings:"Adapter_Removal"
+params.run_Adapter_Removal =   "no"   //* @dropdown @options:"yes","no" @show_settings:"Adapter_Removal"
 //* @style @multicolumn:{seed_mismatches, palindrome_clip_threshold, simple_clip_threshold} @condition:{Tool_for_Adapter_Removal="trimmomatic", seed_mismatches, palindrome_clip_threshold, simple_clip_threshold}, {Tool_for_Adapter_Removal="fastx_clipper", discard_non_clipped}
 
 //* autofill
@@ -29,7 +29,7 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 //* platform
 //* autofill
 if (!((params.run_Adapter_Removal && (params.run_Adapter_Removal == "yes")) || !params.run_Adapter_Removal)){
-g_2_reads_g0_18.set{g0_18_reads_g0_19}
+g_2_reads_g0_18.into{g0_18_reads_g0_19}
 g0_18_log_file_g0_11 = Channel.empty()
 } else {
 
@@ -125,8 +125,8 @@ if ("!{remove_previous_reads}" eq "true") {
     my $workdir= join '/', @paths;
     splice(@paths, -1);
     my $inputsdir = join '/', @paths;
-    $inputsdir .= "/work";
-    print "INFO: inputs reads will be removed if they are located in the $workdir $inputsdir\\n";
+    $inputsdir .= "/inputs";
+    print "INFO: inputs reads will be removed if they are located in the workdir inputsdir\\n";
     my @listOfFiles = `readlink -e !{file1} !{file2}`;
     foreach my $targetFile (@listOfFiles){
         if (index($targetFile, $workdir) != -1 || index($targetFile, $inputsdir) != -1) {
@@ -150,7 +150,7 @@ sub runCmd {
 }
 
 
-//* params.run_Trimmer =   "no"   //* @dropdown @options:"yes","no" @show_settings:"Trimmer"
+params.run_Trimmer =   "no"   //* @dropdown @options:"yes","no" @show_settings:"Trimmer"
 //* @style @multicolumn:{trim_length_5prime,trim_length_3prime}, {trim_length_5prime_R1,trim_length_3prime_R1}, {trim_length_5prime_R2,trim_length_3prime_R2} @condition:{single_or_paired_end_reads="single", trim_length_5prime,trim_length_3prime}, {single_or_paired_end_reads="pair", trim_length_5prime_R1,trim_length_3prime_R1,trim_length_5prime_R2,trim_length_3prime_R2}
 
 //* autofill
@@ -164,7 +164,7 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 //* platform
 //* autofill
 if (!((params.run_Trimmer && (params.run_Trimmer == "yes")) || !params.run_Trimmer)){
-g0_18_reads_g0_19.set{g0_19_reads_g0_20}
+g0_18_reads_g0_19.into{g0_19_reads_g0_20}
 g0_19_log_file_g0_21 = Channel.empty()
 } else {
 
@@ -408,7 +408,7 @@ sub writeFile {
 '''
 }
 
-//* params.run_Quality_Filtering =   "no"   //* @dropdown @options:"yes","no" @show_settings:"Quality_Filtering"
+params.run_Quality_Filtering =   "no"   //* @dropdown @options:"yes","no" @show_settings:"Quality_Filtering"
 //* @style @multicolumn:{window_size,required_quality}, {leading,trailing,minlen}, {minQuality,minPercent} @condition:{tool="trimmomatic", minlen, trailing, leading, required_quality_for_window_trimming, window_size}, {tool="fastx", minQuality, minPercent}
 
 //* autofill
@@ -422,7 +422,7 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 //* platform
 //* autofill
 if (!((params.run_Quality_Filtering && (params.run_Quality_Filtering == "yes")) || !params.run_Quality_Filtering)){
-g0_19_reads_g0_20.set{g0_20_reads_g_41}
+g0_19_reads_g0_20.into{g0_20_reads_g_41}
 g0_20_log_file_g0_16 = Channel.empty()
 } else {
 
@@ -763,15 +763,15 @@ sub writeFile {
 '''
 }
 
-//* params.gtf =  ""  //* @input
-//* params.trna_gtf =  ""  //* @input
-//* params.rrna_fa =  ""  //* @input
-//* params.genome =  ""  //* @input
-//* params.genome2bit =  ""  //* @input
-//* params.genome_origin =  ""  //* @input
-//* params.gtf_origin =  ""  //* @input
-//* params.trna_gtf_origin =  ""  //* @input
-//* params.rrna_fa_origin =  ""  //* @input
+params.gtf =  ""  //* @input
+params.trna_gtf =  ""  //* @input
+params.rrna_fa =  ""  //* @input
+params.genome =  ""  //* @input
+params.genome2bit =  ""  //* @input
+params.genome_origin =  ""  //* @input
+params.gtf_origin =  ""  //* @input
+params.trna_gtf_origin =  ""  //* @input
+params.rrna_fa_origin =  ""  //* @input
 
 def downFile(path){
     if (path.take(1).indexOf("/") == 0){
@@ -784,7 +784,6 @@ def downFile(path){
     }
     return target
 }
-
 
 process Ribosome_Profiling_Build_Index_Check_Genome_Gtf {
 
@@ -891,7 +890,7 @@ gtfDir = valid_gtf_path.substring(0, valid_gtf_path.lastIndexOf('/'))
 ncRNA_output_fasta = gtfDir + "/genes_ncRNA_all.fa"
 """
 #!/usr/bin/env python 
-import sys, os, re
+import sys, os
 import pandas as pd 
 from collections import OrderedDict
 from Bio import SeqIO
@@ -925,7 +924,7 @@ ncRNA_output_fasta = "${ncRNA_output_fasta}"
 
 def read_in_gtf(infile_path, gtf_rows_to_skip):
 	# read in a gtf file
-	df = pd.read_csv(infile_path, sep='\\t', dtype=str, header=None, skiprows=range(gtf_rows_to_skip))
+	df = pd.read_csv(infile_path, sep='\t', dtype=str, header=None, skiprows=range(gtf_rows_to_skip))
 	cols = ['#chrom', 'source', 'feature', 'chromStart', 'chromEnd', 'score', 'strand', 'frame', 'transcript_id']
 	df.columns = cols
 	return df
@@ -940,7 +939,7 @@ def parse_entry(tr):
 
 	for j in trl:
 		k = j.split(" ")
-		k[1] = re.sub(';\$', '', k[1])
+
 		if k[0] in trdict:
 			trdict[k[0]].append(k[1])
 		else:       
@@ -956,7 +955,7 @@ def parse_mod_entry(tr):
 
 	for j in trl:
 		k = j.split("=")
-		k[1] = re.sub(';\$', '', k[1])
+
 		if k[0] in trdict:
 			trdict[k[0]].append(k[1])
 		else:       
@@ -1182,7 +1181,7 @@ def output_df(outdict, out_file):
 		gtfDF = gtfDF.append(outdict[trsp], ignore_index=True)
 		
 	gtfDF.columns = colOut
-	print gtfDF.head()
+	# print gtfDF.head()
 	gtfDF.to_csv(out_file, compression='gzip', sep='\t', index=False)
 
 
@@ -1287,7 +1286,6 @@ def make_tRNA_fasta_dict(tRNAdf):
 	tRNA_fasta_outdict = OrderedDict()
 
 	for i in tRNAdf.index:
-		print tRNAdf.loc[i,'feature']
 
 		if tRNAdf.loc[i,'feature'] == 'tRNA':
 			chrom = tRNAdf.loc[i,'#chrom']
@@ -1336,12 +1334,9 @@ def main():
 	geneDict = build_gene_indexes(df)
 	geneDictNonCoding = find_noncoding_genes(geneDict, df)
 	TR_index_dict = build_transcript_indexes(geneDictNonCoding, df)
-	#
 	geneDictCanon = convert_trsp_index(geneDictNonCoding, df, TR_index_dict)
 	outDict = build_df_dict(df, geneDictCanon)
 	outDictMod = mod_last_column(outDictExclu=outDict)
-	print "outDictMod"
-	print outDictMod
 	output_df(outDictMod, gtf_outfile)
 
 	### make fasta file
@@ -1463,7 +1458,6 @@ gtf_outfile = gtf_outdir+"/genes_all_tr.gtf"
 import sys, os
 import pandas as pd 
 import time
-import re
 from collections import OrderedDict
 import argparse
 
@@ -1489,7 +1483,7 @@ def parse_entry(tr):
 
 	for j in trl:
 		k = j.split(" ")
-		k[1] = re.sub(';\$', '', k[1])
+
 		if k[0] in trdict:
 			trdict[k[0]].append(k[1])
 		else:       
@@ -2079,7 +2073,7 @@ from pathos.multiprocessing import ProcessingPool as Pool
 validChrs = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 
 			'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15',
 			'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 
-			'chrX', 'chrY', 'chrM', 'chrSinV', 'chrLUC','egfp', 'mcherry', "I", "II", "III", "MT"]
+			'chrX', 'chrY', 'chrM', 'chrSinV', 'chrLUC','egfp', 'mcherry']
 
 
 ### specify annotation files here
@@ -2367,7 +2361,6 @@ import sys, os
 import pandas as pd 
 import time
 import argparse
-import re
 from collections import OrderedDict
 
 gtf_file_path = "${params.gtf}" 
@@ -2378,7 +2371,7 @@ gtf_outfile = "${gtf_outfile}"
 
 def read_in_gtf():
 	# 1) read in the gtf file here
-	df = pd.read_csv(gtf_file_path, sep='\\t', dtype=str, header=None, skiprows=range(gtf_rows_to_skip))
+	df = pd.read_csv(gtf_file_path, sep='\t', dtype=str, header=None, skiprows=range(gtf_rows_to_skip))
 	cols = ['#chrom', 'source', 'feature', 'chromStart', 'chromEnd', 'score', 'strand', 'frame', 'transcript_id']
 	df.columns = cols
 	return df
@@ -2392,7 +2385,6 @@ def parse_entry(tr):
 
 	for j in trl:
 		k = j.split(" ")
-		k[1] = re.sub(';\$', '', k[1])
 		if k[0] in trdict:
 			trdict[k[0]].append(k[1])
 		else:       
@@ -2440,19 +2432,15 @@ def find_coding_genes(geneDict, df):
 	## 3) filter geneDict on coding genes only
 
 	geneDictCoding = OrderedDict() ### store coding transcripts only
+
 	for gene in geneDict:
-		print "gene"
-		print gene
 		tr = df.loc[geneDict[gene][0], 'transcript_id']
 		
 		trdict = parse_entry(tr)
-		print "trdict"
-		print trdict
-		print trdict['gene_type'][0]
+		
 		if trdict['gene_type'][0] == 'protein_coding':
 			geneDictCoding[gene] = geneDict[gene]
-	print "geneDictCoding"
-	print geneDictCoding
+
 	return geneDictCoding
 
 def find_processed_pseudogenes(geneDict, df):
@@ -2570,7 +2558,6 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 
 	### now we have all genes that are coding, with start and stop indexes:
 	for gene in geneDictCoding:
-		print gene
 
 
 		trDF = df.iloc[geneDictCoding[gene][0]:geneDictCoding[gene][1]]
@@ -2596,14 +2583,14 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 					# if 'cds_start_NF' in trdict['tag'] or 'cds_end_NF' in trdict['tag']:
 					if 'cds_start_NF' in trdict['tag'] or 'cds_end_NF' in trdict['tag'] or 'mRNA_start_NF' in trdict['tag'] or 'mRNA_end_NF' in trdict['tag']:
 						cds_NF_count +=1
-						print "cds_NF for %s" % (trdict['transcript_id'])
-						print trdict['tag']
+						# print "cds_NF for %s" % (trdict['transcript_id'])
+						# print trdict['tag']
 					else:
 						protCodeTrDict[trdict['transcript_id'][0]] = trdict['tag'] 
 						protCodeCount += 1
 
-		print protCodeCount
-		print protCodeTrDict.keys()
+		# print protCodeCount
+		# print protCodeTrDict.keys()
 
 
 		### find all CCDS transcripts
@@ -2618,9 +2605,9 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 						ccdsTrDict[trdict['transcript_id'][0]]= trdict['tag']
 						ccdsCount += 1
 
-		print ccdsCount
-		print ccdsTrDict.keys()
-		print ccdsTrDict
+		# print ccdsCount
+		# print ccdsTrDict.keys()
+		# print ccdsTrDict
 
 		### find all appris transcripts for the gene
 		principal_iso_count = 0 
@@ -2699,7 +2686,7 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 
 
 		if len(protCodeTrDict) == 0: 
-			print "no protein coding genes here!"
+			# print "no protein coding genes here!"
 			noProtCode +=1 ## these should have already been filtered out
 			continue
 
@@ -2718,11 +2705,11 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 
 
 		for tr in protCodeTrDict.keys():
-			print tr
+			# print tr
 
 			### check for appris entry
 			if tr in apDictAll.keys():
-				print apDictAll[tr]
+				# print apDictAll[tr]
 				apri_val = apDictAll[tr]
 
 				if apri_val in pri_vals:
@@ -2751,13 +2738,9 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 			utr3Len = 0
 			utr5Len = 0
 			
-			scStart = 0
-			scEnd = 0
-			
 			utrVals = []
 		
 			for row in range(len(tempdf)):
-				print tempdf.loc[row]
 				## define transcript start and end positions
 				if tempdf.loc[row]['feature'] == 'transcript':
 					trxStart = tempdf.loc[row]['chromStart']
@@ -2800,10 +2783,10 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 			## add transcript df to gene df
 			dfcomp = dfcomp.append(df_to_add, ignore_index=True)
 
-			print dfcomp
+			# print dfcomp
 
 		### output the minimum and maximum chromosome start and end positions for all coding transcripts
-		print dfcomp
+		# print dfcomp
 		trxStartmin = dfcomp['trxStart'].min()
 		trxEndmax = dfcomp['trxEnd'].max()
 		tr_min = dfcomp.loc[pd.to_numeric(dfcomp['trxStart']).idxmin()]['trsp']
@@ -2822,7 +2805,7 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 
 		invalid_UTR_count = pc_tr_count - valUTR_tr_count
 		invalidUTRtotal += invalid_UTR_count
-		print invalid_UTR_count, "INVAL UTR"
+		# print invalid_UTR_count, "INVAL UTR"
 
 		### discard this gene if no valid transcripts remain
 		if len(dfcomp) == 0:
@@ -2835,7 +2818,7 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 			# tr = protCodeTrDict.keys()[0] ### I think this is wrong here
 			dfcomp = dfcomp.reset_index(drop=True)
 			tr = dfcomp.loc[0, 'trsp']
-			print tr, "single ccds"
+			# print tr, "single ccds"
 
 			### !!!! output transcript here
 			geneDictCanon[tr] = [gene, TR_index_dict[tr]] 
@@ -2906,23 +2889,23 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 
 			### check for multiple stop codons, there is one case of this for ENSG00000108395.14 (TRIM37), dif exons that give same cds
 			if len(unique_stops) > 1:
-				print "MULTIPLE STOP CODONS for %s" % gene 
-				print dfcomp
-				print unique_stops
-				print strnds 
+				# print "MULTIPLE STOP CODONS for %s" % gene 
+				# print dfcomp
+				# print unique_stops
+				# print strnds 
 
 				### take subset of transcripts with terminal stop codon
 				if strnds == "+":
 					dfcomp = dfcomp.loc[dfcomp['scEnd'] == unique_stops.max()]
 				if strnds == "-":
 					dfcomp = dfcomp.loc[dfcomp['scEnd'] == unique_stops.min()]
-				print dfcomp
+				# print dfcomp
 
 			# if dfcomp.loc[0]['geneID'] == 'ENSG00000108395.14':
 			# 	print dfcomp
 			
 			remaining_classes = dfcomp['apri_class'].unique()
-			print remaining_classes
+			# print remaining_classes
 
 			### QC4 - filter by appris classification
 
@@ -2953,10 +2936,10 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 
 			if len(dfcomp) > 1:
 				cdsLenUnique = dfcomp['cdsLen'].unique()
-				print cdsLenUniqueAlt.max()
+				# print cdsLenUniqueAlt.max()
 				dfcomp = dfcomp.loc[dfcomp['cdsLen'] == cdsLenUnique.max()]
 
-			print dfcomp
+			# print dfcomp
 
 			### >>
 			###  Select transcripts with MIN 3'UTR length ###
@@ -2983,7 +2966,7 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 				print utr3min
 
 			# utr3min = dfcomp['utr3Len'].min() ### set minimum value for 3'UTR
-			print utr3min
+			# print utr3min
 			utr3valCounts = dfcomp['utr3Len'].value_counts() ### get number of occarnaces of each 3'utr length
 
 			utr3minOccurances = utr3valCounts[utr3min]
@@ -2997,11 +2980,11 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 				geneDictCanon[outTr] = [gene, TR_index_dict[outTr]]
 			
 			if utr3minOccurances > 1:
-				print "multiple 3'UTRs"
+				# print "multiple 3'UTRs"
 
 
 				dfcomp = dfcomp.loc[dfcomp['utr3Len'] == utr3min] ### reset dfcomp to only include min utr3's
-				print dfcomp
+				# print dfcomp
 				### next take transcript with shortest 5'UTR
 				utr5min = dfcomp['utr5Len'].min()
 				# if utr5min == 3:
@@ -3019,7 +3002,7 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 				if utr5minOccurances > 1:
 					### some transcripts are completely identical in genecode annotation, must be historical reason
 					### only difference is transcript name, and some of the annotations in last column
-					print "MULTIPLE VALID trsps for %s" % gene
+					# print "MULTIPLE VALID trsps for %s" % gene
 					dfcomp = dfcomp.reset_index(drop=True)
 					print dfcomp
 					identical_trsps += 1
@@ -3028,14 +3011,14 @@ def choose_appris_canonical(geneDictCoding, df, TR_index_dict):
 					geneDictCanon[outTr] = [gene, TR_index_dict[outTr]] 
 
 
-	print "print out some summaries "
+	print "" # print out some summaries 
 	print "Number of identical transcripts: ", identical_trsps #20 of these in the genome that fall out at the end
 	print "Total number of appris isoforms: ", total_iso
 	print "Number of genes with multiple appris isoforms: ", multi_iso
 	# print "Number of genes with single appris isofrom: ", single_iso
-	print geneDictCanon   
+	# print geneDictCanon   
 	print "Count for appris principals 1/2/3/4/5/6/7 isoforms: ", ap1, ap2, ap3, ap4, ap5, ap1_alt, ap2_alt
-	print geneDictCanon
+	# print geneDictCanon
 	print "CCDS genes without appris isofomrs: ", noAppris
 	print "genes included == %s" % (len(geneDictCanon))
 	print "genes in protCodeTrDict == %s" % (protCodeCount)
@@ -3136,12 +3119,12 @@ def find_transcript_overlaps(outDict, geneDictChrLoc):
 
 		# if int(overlap_feats[1]) > int(next_over[0]) and break_signal !=1:
 		if int(overlap_feats[1]) > int(next_gene_start) and break_signal !=1:
-			print "******"
-			print "OVERLAPING DOWNSTREAM TRSP %s, %s" % (gene, overlap_feats[5])
-			print "******"
-			print overlap_feats
-			# print next_over
-			print next_gene
+			# print "******"
+			# print "OVERLAPING DOWNSTREAM TRSP %s, %s" % (gene, overlap_feats[5])
+			# print "******"
+			# print overlap_feats
+			# # print next_over
+			# print next_gene
 
 			exclusion_overlaps[gene] = overlap_feats
 			excluded_trsp_count += 1
@@ -3179,12 +3162,12 @@ def find_transcript_overlaps(outDict, geneDictChrLoc):
 
 		# if int(overlap_feats[0]) < int(next_over[1]) and break_signal !=1:
 		if int(overlap_feats[0]) < int(next_gene_end) and break_signal !=1:
-			print "******"
-			print "OVERLAPING UPSTREAM TRSP %s, %s" % (gene, overlap_feats[5])
-			print "******"
-			print overlap_feats
-			# print next_over
-			print next_gene
+			# print "******"
+			# print "OVERLAPING UPSTREAM TRSP %s, %s" % (gene, overlap_feats[5])
+			# print "******"
+			# print overlap_feats
+			# # print next_over
+			# print next_gene
 			
 			exclusion_overlaps[gene] = overlap_feats
 			excluded_trsp_count += 1
@@ -3253,21 +3236,21 @@ def define_pseudogene_positions(pseudoGeneDict, df):
 
 	for gene in pseudoGeneDict:
 
-		print gene
+		# print gene
 		tempdf = df.iloc[pseudoGeneDict[gene][0]:pseudoGeneDict[gene][1]]
 		tempdf = tempdf.loc[tempdf['feature']=='transcript']
 		tempdf = tempdf.reset_index(drop=True)
 
-		print tempdf
+		# print tempdf
 		overlap_feats = overlap_features(tempdf)
-		print overlap_feats
+		# print overlap_feats
 
 		over_range = overlap_feats[0:2]
 		over_range = [int(x) for x in over_range]
 		# over_range = map(int, over_range)
 		# cur_chrom = overlap_feats[4]
 		cur_chrom = overlap_feats[4]+"_"+overlap_feats[2] ## account for strandedness
-		print cur_chrom
+		# print cur_chrom
 
 		if cur_chrom in pseudoChromDict:
 			pseudoChromDict[cur_chrom].append(over_range)
@@ -3276,10 +3259,10 @@ def define_pseudogene_positions(pseudoGeneDict, df):
 
 			# pseudoChromDict[cur_chrom] = pseudoChromDict[cur_chrom].append(over_range)
 
-	print pseudoChromDict
+	# print pseudoChromDict
 	return pseudoChromDict
 
-	print pseudoChromDict
+	# print pseudoChromDict
 
 
 def check_pseudo_overlap(x1, x2, y1, y2):
@@ -3294,8 +3277,8 @@ def find_pseudo_overlaps(outDictExclu, pseudoChromDict):
 	pseudo_exclude_count = 0
 
 	for gene in outDictExclu:
-		print gene
-		print outDictExclu[gene]
+		# print gene
+		# print outDictExclu[gene]
 
 		genedf = outDictExclu[gene]
 		genedf = genedf.reset_index(drop=True)
@@ -3319,9 +3302,9 @@ def find_pseudo_overlaps(outDictExclu, pseudoChromDict):
 				# gene_over_range = map(int, gene_over_range)
 				cur_chrom = overlap_feats[4]+"_"+overlap_feats[2]
 
-				print gene_over_range
-				print gene_over_range[0]
-				print gene_over_range[1]
+				# print gene_over_range
+				# print gene_over_range[0]
+				# print gene_over_range[1]
 
 				try: # 'chrM_+' is not in pseudoChromDict ... 
 					chr_ref_list = pseudoChromDict[cur_chrom]
@@ -3332,7 +3315,7 @@ def find_pseudo_overlaps(outDictExclu, pseudoChromDict):
 					continue
 
 				for pseudo in chr_ref_list:
-					print pseudo
+					# print pseudo
 					overTest = check_pseudo_overlap(gene_over_range[0], gene_over_range[1], pseudo[0], pseudo[1])
 
 					if overTest == True:
@@ -3450,7 +3433,7 @@ from pathos.multiprocessing import ProcessingPool as Pool
 validChrs = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 
 			'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15',
 			'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 
-			'chrX', 'chrY', 'chrM', 'chrSinV', 'chrLUC', 'egfp', 'mcherry', "I", "II", "III", "MT"]
+			'chrX', 'chrY', 'chrM', 'chrSinV', 'chrLUC', 'egfp', 'mcherry']
 
 codonList = [
 	'AAA', 'AAC', 'AAG', 'AAT',
@@ -4766,11 +4749,11 @@ echo "Building Completed."
 """
 }
 
-g40_7_complete_g_41= g40_7_complete_g_41.ifEmpty("") 
+g40_7_complete_g_41= g40_7_complete_g_41.ifEmpty([""]) 
 
-//* params.ncRNA_star_index =  ""  //* @input
+params.ncRNA_star_index =  ""  //* @input
 if (!((params.run_ncRNA_Removal && (params.run_ncRNA_Removal == "yes")) || !params.run_ncRNA_Removal)){
-g0_20_reads_g_41.set{g_41_reads_g42_32}
+g0_20_reads_g_41.into{g_41_reads_g42_32}
 g_41_logOut_g_29 = Channel.empty()
 } else {
 
@@ -4893,9 +4876,6 @@ input:
 output:
  file "${name}.tsv"  into g_28_outputFileTSV_g_26
 
-errorStrategy 'retry'
-maxRetries 3
-
 script:
 name = outputFileName[0]
 """    
@@ -4903,17 +4883,17 @@ awk 'FNR==1 && NR!=1 {  getline; } 1 {print} ' *.tsv > ${name}.tsv
 """
 }
 
-//* params.run_Sequential_Mapping =   "yes"   //* @dropdown @options:"yes","no" @show_settings:"Sequential_Mapping" @description:"Filters out or quantify given sequence sets."
-//* params.bowtieInd_rRNA =  ""  //* @input
-//* params.bowtieInd_ercc =  ""  //* @input
-//* params.bowtieInd_miRNA =  ""  //* @input
-//* params.bowtieInd_tRNA =  ""  //* @input
-//* params.bowtieInd_piRNA =  ""  //* @input
-//* params.bowtieInd_snRNA =  ""  //* @input
-//* params.bowtieInd_rmsk =  ""  //* @input
-//* params.bowtie_index =  ""  //* @input
-//* params.bowtie2_index =  ""  //* @input
-//* params.star_index =  ""  //* @input
+params.run_Sequential_Mapping =   "yes"   //* @dropdown @options:"yes","no" @show_settings:"Sequential_Mapping" @description:"Filters out or quantify given sequence sets."
+params.bowtieInd_rRNA =  ""  //* @input
+params.bowtieInd_ercc =  ""  //* @input
+params.bowtieInd_miRNA =  ""  //* @input
+params.bowtieInd_tRNA =  ""  //* @input
+params.bowtieInd_piRNA =  ""  //* @input
+params.bowtieInd_snRNA =  ""  //* @input
+params.bowtieInd_rmsk =  ""  //* @input
+params.bowtie_index =  ""  //* @input
+params.bowtie2_index =  ""  //* @input
+params.star_index =  ""  //* @input
 
 //both bowtie and bowtie2 indexes located in same path
 bowtieIndexes = [rRNA: params.bowtieInd_rRNA, 
@@ -4993,7 +4973,7 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 //* platform
 //* autofill
 if (!(params.run_Sequential_Mapping == "yes")){
-g_41_reads_g42_32.set{g42_32_reads_g_4}
+g_41_reads_g42_32.into{g42_32_reads_g_4}
 g42_32_bowfiles_g42_26 = Channel.empty()
 g42_32_bam_file_g42_23 = Channel.empty()
 g42_32_bam_file_g42_27 = Channel.empty()
@@ -5006,7 +4986,7 @@ g42_32_log_file_g42_30 = Channel.empty()
 
 process Sequential_Mapping_Module_Sequential_Mapping {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*\/.*_sorted.bam$/) "sequential_mapping/$filename"
 	else if (filename =~ /.*\/.*_sorted.bam.bai$/) "sequential_mapping/$filename"
@@ -5027,7 +5007,6 @@ output:
  file "*/*_duplicates_stats.log" optional true  into g42_32_log_file_g42_30
 
 errorStrategy 'retry'
-maxRetries 2
 
 when:
 params.run_Sequential_Mapping == "yes"
@@ -5055,7 +5034,6 @@ remove_previous_reads = params.Sequential_Mapping_Module_Sequential_Mapping.remo
 
 """
 #!/bin/bash
-
 mkdir reads final_reads bowfiles
 workflowWorkDir=\$(cd ../../ && pwd)
 if [ -n "${mappingList}" ]; then
@@ -5130,8 +5108,6 @@ if [ -n "${mappingList}" ]; then
                     mv ${name}.starLog.final.out \${k2}_${name}.star_\${rna_set}
                 elif [ "\${alignersListAr[\$k-1]}" == "bowtie" ]; then
                     bowtie \${paramsListAr[\$k-1]}   \${indexesListAr[\$k-1]}  --un  unmapped/${name}.unmapped.fastq -1 ${name}.1.fastq -2 ${name}.2.fastq -S  \${rna_set}_${name}_alignment.sam 2>&1 | tee \${k2}_${name}.bow1_\${rna_set}  
-                    
-                    grep -q "reads processed:"  \${k2}_${name}.bow1_\${rna_set} && echo true || exit 1
                     mv unmapped/${name}.unmapped_1.fastq unmapped/${name}.unmapped.1.fastq
                     mv unmapped/${name}.unmapped_2.fastq unmapped/${name}.unmapped.2.fastq
                 fi
@@ -5146,7 +5122,6 @@ if [ -n "${mappingList}" ]; then
                 elif [ "\${alignersListAr[\$k-1]}" == "bowtie" ]; then
                     bowtie \${paramsListAr[\$k-1]}  \${indexesListAr[\$k-1]}  --un  unmapped/${name}.unmapped.fastq  ${name}.fastq  -S \${rna_set}_${name}_alignment.sam 2>&1 | tee \${k2}_${name}.bow1_\${rna_set}  
                     
-                    grep -q "reads processed:"  \${k2}_${name}.bow1_\${rna_set} && echo true || exit 1
                 fi
             fi
             echo "INFO: samtools view -bT \${fasta} \${rna_set}_${name}_alignment.sam > \${rna_set}_${name}_alignment.bam"
@@ -5157,9 +5132,9 @@ if [ -n "${mappingList}" ]; then
                 echo "INFO: samtools view -F 0x04 -b \${rna_set}_${name}_tmp0.bam > \${rna_set}_${name}_alignment.bam"
                 samtools view -F 0x04 -b \${rna_set}_${name}_tmp0.bam > \${rna_set}_${name}_alignment.bam  # Remove unmapped reads
                 if [ "${mate}" == "pair" ]; then
-                    echo "# unique mapped reads: \$(samtools view -f 0x40 -F 0x4 -q 255 \${rna_set}_${name}_alignment.bam | cut -f 1 | sort -T '.' | uniq | wc -l)" >> \${k2}_${name}.bow1_\${rna_set}
+                    echo "# unique mapped reads: \$(samtools view -f 0x40 -F 0x4 -q 255 \${rna_set}_${name}_alignment.bam | cut -f 1 | sort | uniq | wc -l)" >> \${k2}_${name}.bow1_\${rna_set}
                 else
-                    echo "# unique mapped reads: \$(samtools view -F 0x40 -q 255 \${rna_set}_${name}_alignment.bam | cut -f 1 | sort -T '.' | uniq | wc -l)" >> \${k2}_${name}.bow1_\${rna_set}
+                    echo "# unique mapped reads: \$(samtools view -F 0x40 -q 255 \${rna_set}_${name}_alignment.bam | cut -f 1 | sort | uniq | wc -l)" >> \${k2}_${name}.bow1_\${rna_set}
                 fi
             fi
             if [ "${mate}" == "pair" ]; then
@@ -5260,11 +5235,11 @@ fi
 }
 
 
-//* params.star_index =  ""  //* @input
+params.star_index =  ""  //* @input
 
 process STAR_align_Single_Best_Multimapper {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /${newName}.(bam|bam.bai)$/) "star_main_alignment/$filename"
 	else if (filename =~ /${newName}Log.final.out$/) "star_main_alignment/$filename"
@@ -5402,9 +5377,6 @@ input:
 output:
  file "${name}.tsv"  into g_22_outputFileTSV_g_26
 
-errorStrategy 'retry'
-maxRetries 3
-
 script:
 name = outputFileName[0]
 """    
@@ -5412,14 +5384,14 @@ awk 'FNR==1 && NR!=1 {  getline; } 1 {print} ' *.tsv > ${name}.tsv
 """
 }
 
-//* params.single_transcript_gtf =  ""  //* @input
-//* params.genome2bit =  ""  //* @input
-//* params.makeavggene_main_path =  ""  //* @input
-//* params.single_transcript_UTR_csv =  ""  //* @input
-//* params.single_transcript_stopcodons_csv =  ""  //* @input
-//* params.densebuilder_main_path =  ""  //* @input
-//* params.riboseq_buildDenseTables_rpkm_path =  ""  //* @input
-//* params.riboseq_buildDenseTables_rpkm_utr3adj_path =  ""  //* @input
+params.single_transcript_gtf =  ""  //* @input
+params.genome2bit =  ""  //* @input
+params.makeavggene_main_path =  ""  //* @input
+params.single_transcript_UTR_csv =  ""  //* @input
+params.single_transcript_stopcodons_csv =  ""  //* @input
+params.densebuilder_main_path =  ""  //* @input
+params.riboseq_buildDenseTables_rpkm_path =  ""  //* @input
+params.riboseq_buildDenseTables_rpkm_utr3adj_path =  ""  //* @input
 
 thread = "10" 
 
@@ -6139,10 +6111,10 @@ if __name__ == '__main__':
 """
 }
 
-//* params.single_transcript_mRNA_csv =  ""  //* @input
-//* params.single_transcript_UTR_csv =  ""  //* @input
-//* params.genome2bit =  ""  //* @input
-//* params.rphelper_path =  ""  //* @input
+params.single_transcript_mRNA_csv =  ""  //* @input
+params.single_transcript_UTR_csv =  ""  //* @input
+params.genome2bit =  ""  //* @input
+params.rphelper_path =  ""  //* @input
 
 //* autofill
 if ($HOSTNAME == "default"){
@@ -6411,9 +6383,9 @@ if __name__ == '__main__':
 """
 }
 
-//* params.motif_file_root_path =  ""  //* @input
-//* params.codon_occupancy_main_path =  ""  //* @input
-//* params.single_transcript_UTR_csv =  ""  //* @input
+params.motif_file_root_path =  ""  //* @input
+params.codon_occupancy_main_path =  ""  //* @input
+params.single_transcript_UTR_csv =  ""  //* @input
 
 //* autofill
 if ($HOSTNAME == "default"){
@@ -6432,7 +6404,7 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 
 process codon_occupancies {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /${name}$/) "results/$filename"
 }
@@ -6650,7 +6622,7 @@ treatment_group = params.aggr.treatment_group
 
 process aggr {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /${name}\/countTables\/.*.csv$/) "count_tables/$filename"
 }
@@ -6672,7 +6644,7 @@ mv ${dirName} ${name}
 
 process figure4B {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
 	else if (filename =~ /.*.sh$/) "figure_data/$filename"
@@ -6686,8 +6658,6 @@ output:
  file "*.pdf"  into g_10_outputFilePdf
  file "*.sh"  into g_10_script
  file "*.csv"  into g_10_csvout
-
-errorStrategy 'ignore'
 
 script:
 nameAll = nameAll.collect{ '"' + it + '"'}
@@ -6764,10 +6734,7 @@ def plot_RRTS_boxplot(df, dflist, namelist):
 	validsamps = namelist
 	dfp = df.loc[df['sampname'].isin(validsamps)]
 	dfp = dfp.sort_values('stopcodon', ascending=True)
-	dfp.to_csv("Figure4B_plotted_data.csv")
-	medians = dfp.groupby(['sampname','stopcodon'])['RRTS'].median()
-	medians.to_csv("Figure4B_plotted_medians.csv")
-	
+
 	fig, ax = plt.subplots(figsize=(6, 6))
 	ax = sns.boxplot(x=dfp['sampname'],  y=dfp['RRTS'], orient = 'v',
 				 fliersize = 0, hue = dfp['stopcodon'], notch=True, order = validsamps, palette=colorList)
@@ -6825,7 +6792,7 @@ if __name__ == '__main__':
 
 process figures {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
 	else if (filename =~ /.*.sh$/) "figure_data/$filename"
@@ -7081,10 +7048,10 @@ if __name__ == '__main__':
 
 process figure2C {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
-	else if (filename =~ /.*.(sh|csv)$/) "figure_data/$filename"
+	else if (filename =~ /.*.sh$/) "figure_data/$filename"
 }
 
 input:
@@ -7092,7 +7059,7 @@ input:
 
 output:
  file "*.pdf"  into g_52_outputFilePdf
- file "*.{sh,csv}"  into g_52_script
+ file "*.sh"  into g_52_script
 
 script:
 treatment_group_str = treatment_group.collect{ '"' + it + '"'}
@@ -7139,8 +7106,7 @@ threshold = '0'
 ctrl_sample = '${control_group}'
 ctrl_sample_name = '${control_group_name}'
 ctrl_sample_names = [ctrl_sample_name]
-#ctrl_samples = [x.strip() for x in ctrl_sample.split(',')]
-ctrl_samples = [ctrl_sample]
+ctrl_samples = [x.strip() for x in ctrl_sample.split(',')]
 treat_samples = ${treatment_group_str}
 treat_samples_name = ${treatment_group_name_str}
 samples = ctrl_samples + treat_samples
@@ -7170,6 +7136,11 @@ for i in range(len(sample_names)):
 		splittedSamples.append(sampList[k])
 		treatments.append(sampName)
 		colorVals.append(colorVal)
+
+print splittedSamples
+print treatments
+print colorVals
+	
 
 if pop == "fl":
 	minlen = str(flmin)
@@ -7205,6 +7176,8 @@ def avggene_riboshift_plot_overlay(alignposition, ribosome_site, normalization, 
 	for file in splittedSamples:
 		fp_assign_path = file
 		avggene_csv_path = "%s/avggene%s_ORF%s_%sshift_%s%s150" % (fp_assign_path, alignpos, norm_type, ribosome_shift, assignment, norm) # norm should be 'uneq' for now
+
+	###
 
 	## get paths to stored csv average gene files
 		if pop == 'custom':
@@ -7271,6 +7244,7 @@ def avggene_riboshift_plot_overlay(alignposition, ribosome_site, normalization, 
 	dfplt['treatments'] = treatments
 	dfplt['colorVal'] = colorVals
 	
+	print relDenList
 	# splittedSamples: ['c1bamtofq', 'e1bamtofq', 'e1bamtofq_dup']
 	# relDenList:[0.7728843047744274, 4.729053958564587, 4.519081209823026]
 	# return: av_vals
@@ -7285,13 +7259,14 @@ def avggene_riboshift_plot_overlay(alignposition, ribosome_site, normalization, 
 		renDenSplit = relDenList[indStart:ind]
 		mean = sum(renDenSplit) / len(renDenSplit)
 		av_vals.append(mean)
+	print av_vals
 	
 	dfav = pd.DataFrame.from_dict({
 			"tr":sample_names,
 			'av':av_vals
 		})
 
-	dfplt.to_csv("Figure2C_data.csv", index=True)
+
 	### seaborn catplots:
 	fig, ax = plt.subplots(figsize=(6,6))
 	sns.boxplot(data=dfav, x='tr', y='av', showbox=False , width = 0.5, 
@@ -7334,7 +7309,7 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 
 process figure3S1C {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
 	else if (filename =~ /.*.sh$/) "figure_data/$filename"
@@ -7540,7 +7515,7 @@ if __name__ == '__main__':
 
 process figure2S3A {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
 	else if (filename =~ /.*.sh$/) "figure_data/$filename"
@@ -7710,7 +7685,7 @@ if __name__ == '__main__':
 
 process figure2S3B {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.pdf$/) "reports/$filename"
 	else if (filename =~ /.*.sh$/) "figure_data/$filename"
@@ -7721,7 +7696,7 @@ input:
  file nameAll from g_6_outputDir_g_13.collect()
 
 output:
- file "*.pdf" optional true  into g_13_outputFilePdf
+ file "*.pdf"  into g_13_outputFilePdf
  file "*.sh"  into g_13_script
  file "*.csv"  into g_13_csvout
 
@@ -7955,7 +7930,7 @@ mappingListQuoteSep = mapList.collect{ '"' + it + '"'}.join(",")
 rawIndexList = indexList.collect{ '"' + it + '"'}.join(",") 
 process Sequential_Mapping_Module_Sequential_Mapping_Dedup_Bam_count {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.counts.tsv$/) "sequential_mapping_counts/$filename"
 }
@@ -8068,7 +8043,7 @@ mappingListQuoteSep = mapList.collect{ '"' + it + '"'}.join(",")
 rawIndexList = indexList.collect{ '"' + it + '"'}.join(",") 
 process Sequential_Mapping_Module_Sequential_Mapping_Bam_count {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.counts.tsv$/) "sequential_mapping_counts/$filename"
 }
@@ -8180,7 +8155,7 @@ sub makeBed {
 
 process Sequential_Mapping_Module_Deduplication_Summary {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /deduplication_summary.tsv$/) "sequential_mapping/$filename"
 }
@@ -8191,9 +8166,6 @@ input:
 
 output:
  file "deduplication_summary.tsv"  into g42_30_outputFileTSV
-
-errorStrategy 'retry'
-maxRetries 2
 
 shell:
 '''
@@ -8296,9 +8268,6 @@ input:
 output:
  file '*.tsv'  into g42_26_outputFileTSV_g42_13
  val "sequential_mapping_sum"  into g42_26_name_g42_13
-
-errorStrategy 'retry'
-maxRetries 2
 
 shell:
 '''
@@ -8413,9 +8382,6 @@ input:
 output:
  file "${name}.tsv"  into g42_13_outputFileTSV_g42_14
 
-errorStrategy 'retry'
-maxRetries 3
-
 script:
 name = outputFileName[0]
 """    
@@ -8426,7 +8392,7 @@ awk 'FNR==1 && NR!=1 {  getline; } 1 {print} ' *.tsv > ${name}.tsv
 
 process Sequential_Mapping_Module_Sequential_Mapping_Short_Summary {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /sequential_mapping_short_sum.tsv$/) "sequential_mapping/$filename"
 	else if (filename =~ /sequential_mapping_detailed_sum.tsv$/) "sequential_mapping/$filename"
@@ -8438,9 +8404,6 @@ input:
 output:
  file "sequential_mapping_short_sum.tsv"  into g42_14_outputFileTSV_g_26
  file "sequential_mapping_detailed_sum.tsv"  into g42_14_outputFile
-
-errorStrategy 'retry'
-maxRetries 2
 
 shell:
 '''
@@ -8544,7 +8507,7 @@ if ($HOSTNAME == "ghpcc06.umassrc.org"){
 
 process Overall_Summary {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /overall_summary.tsv$/) "Summary/$filename"
 }
@@ -8581,7 +8544,7 @@ my @files = ();
 # order must be in this order for chipseq pipeline: bowtie->dedup
 # rsem bam pipeline: dedup->rsem, star->dedup
 # riboseq ncRNA_removal->star
-my @order = ("adapter_removal","trimmer","quality","extractUMI","extractValid","sequential_mapping","ncRNA_removal","bowtie","star","hisat2","tophat2", "dedup","rsem","kallisto","esat","count");
+my @order = ("adapter_removal","trimmer","quality","extractUMI","sequential_mapping","ncRNA_removal","bowtie","star","hisat2","tophat2", "dedup","rsem","kallisto");
 for ( my $k = 0 ; $k <= $#order ; $k++ ) {
     for ( my $i = 0 ; $i <= $#rawFiles ; $i++ ) {
         if ( $rawFiles[$i] =~ /$order[$k]/ ) {
@@ -8648,13 +8611,13 @@ sub uniq {
 
 }
 
-//* params.run_FastQC =  "no"  //* @dropdown @options:"yes","no" @description:"FastQC provides quality control checks on raw sequence data."
+params.run_FastQC =  "no"  //* @dropdown @options:"yes","no" @description:"FastQC provides quality control checks on raw sequence data."
 
 
 
 process Adapter_Trimmer_Quality_Module_FastQC {
 
-publishDir params.outdir, mode: 'copy',
+publishDir params.outdir, overwrite: true, mode: 'copy',
 	saveAs: {filename ->
 	if (filename =~ /.*.(html|zip)$/) "FastQC/$filename"
 }
