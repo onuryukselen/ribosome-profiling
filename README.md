@@ -66,3 +66,8 @@ To start using the dolphinnext/ribosome-profiling pipeline please go to <a class
 ##### Run through Command Line:
 
 To install and start using the dolphinnext/ribosome-profiling pipeline by using command line, please follow these steps: <a class="link-underline" href="https://github.com/dolphinnext/ribosome-profiling/blob/1.0/docs/local.md" target="_blank">Installation</a> .
+
+##### Web accessible Genome files:
+
+* **Human**: https://galaxyweb.umassmed.edu/pub/dnext_data/genome_data_other/ribosome-profiling/human/
+* **Mouse**: https://galaxyweb.umassmed.edu/pub/dnext_data/genome_data_other/ribosome-profiling/mouse/
