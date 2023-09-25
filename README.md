@@ -76,5 +76,5 @@ To install and start using the dolphinnext/ribosome-profiling pipeline by using 
 
 ##### Web accessible Genome files:
 
-* **Human**: https://galaxyweb.umassmed.edu/pub/dnext_data/genome_data_other/ribosome-profiling/human/
-* **Mouse**: https://galaxyweb.umassmed.edu/pub/dnext_data/genome_data_other/ribosome-profiling/mouse/
+* **Human**: https://galaxyweb.umassmed.edu/pub/dnext_data/genome_data_other/ribosome-profiling/human/](https://web.dolphinnext.com/umw_biocore/dnext_data/genome_data_other/ribosome-profiling/human/
+* **Mouse**: https://galaxyweb.umassmed.edu/pub/dnext_data/genome_data_other/ribosome-profiling/mouse/](https://web.dolphinnext.com/umw_biocore/dnext_data/genome_data_other/ribosome-profiling/mouse
